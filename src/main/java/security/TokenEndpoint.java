@@ -11,7 +11,6 @@ import com.nimbusds.jwt.SignedJWT;
 import errorhandling.API_Exception;
 import security.errorhandling.AuthenticationException;
 
-import javax.json.Json;
 import javax.ws.rs.Consumes;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
