@@ -5,7 +5,6 @@ import dtos.ChuckDTO;
 import dtos.DadJokeDTO;
 import entities.User;
 
-import java.security.Principal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ExecutionException;
@@ -13,16 +12,12 @@ import javax.annotation.security.RolesAllowed;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.TypedQuery;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.*;
 import javax.ws.rs.Produces;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.SecurityContext;
-import security.UserPrincipal;
 
-import externalAPIHandling.JokeFetcher;
+import jokes.JokeFetcher;
 import utils.EMF_Creator;
 
 /**
@@ -30,9 +25,9 @@ import utils.EMF_Creator;
  */
 @Path("info")
 public class DemoResource {
-    
     private static final EntityManagerFactory EMF = EMF_Creator.createEntityManagerFactory();
     private final Gson gson = new Gson();
+
     @Context
     private UriInfo context;
 
@@ -41,19 +36,18 @@ public class DemoResource {
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
-    public String getInfoForAll() {
-        return "{\"msg\":\"Hello anonymous\"}";
+    public Response getInfoForAll() {
+        return Response.ok("{\"msg\":\"Hello anonymous\"}").build();
     }
 
-    //Just to verify if the database is setup
+    //Just to verify if the database is set up
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("all")
     public String allUsers() {
-
         EntityManager em = EMF.createEntityManager();
         try {
-            TypedQuery<User> query = em.createQuery ("select u from User u",entities.User.class);
+            TypedQuery<User> query = em.createQuery ("select u from User u", entities.User.class);
             List<User> users = query.getResultList();
             return "[" + users.size() + "]";
         } finally {
@@ -65,36 +59,31 @@ public class DemoResource {
     @Produces(MediaType.APPLICATION_JSON)
     @Path("user")
     @RolesAllowed("user")
-    public String getFromUser() {
+    public Response getFromUser() {
         String thisuser = securityContext.getUserPrincipal().getName();
-        return "{\"msg\": \"Hello to User: " + thisuser + "\"}";
+        return Response.ok("{\"msg\": \"Hello to User: " + thisuser + "\"}").build();
     }
 
     @GET
     @Produces(MediaType.APPLICATION_JSON)
     @Path("admin")
     @RolesAllowed("admin")
-    public String getFromAdmin() {
+    public Response getFromAdmin() {
         String thisuser = securityContext.getUserPrincipal().getName();
         String thisrole = "admin";
         //if (securityContext.isUserInRole("admin")) thisrole = "admin";
         //else if (securityContext.isUserInRole("user")) thisrole = "user";
-
-        return "{\"username\": \"" + thisuser + "\",\"role\":\"" + thisrole + "\"}";
+        return Response.ok("{\"username\": \"" + thisuser + "\",\"role\":\"" + thisrole + "\"}").build();
     }
 
     @GET
     @Path("externalAPI/jokes")
     @Produces(MediaType.APPLICATION_JSON)
-    public String getJokes() throws ExecutionException, InterruptedException {
-
-        List<Object> futureList= new ArrayList();
+    public Response getJokes() throws ExecutionException, InterruptedException {
+        List<Object> jokes = new ArrayList();
         JokeFetcher jokeFetcher = new JokeFetcher();
-
-        futureList.add(jokeFetcher.getFutureJoke("https://api.chucknorris.io/jokes/random", ChuckDTO.class).get());
-        futureList.add(jokeFetcher.getFutureJoke("https://icanhazdadjoke.com", DadJokeDTO.class).get());
-
-        return gson.toJson(futureList);
+        jokes.add(jokeFetcher.getJoke("https://api.chucknorris.io/jokes/random", ChuckDTO.class));
+        jokes.add(jokeFetcher.getJoke("https://icanhazdadjoke.com", DadJokeDTO.class));
+        return Response.ok(gson.toJson(jokes)).build();
     }
-
 }
