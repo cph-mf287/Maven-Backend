@@ -9,7 +9,6 @@ import security.errorhandling.AuthenticationException;
  * @author lam@cphbusiness.dk
  */
 public class UserFacade {
-
     private static EntityManagerFactory emf;
     private static UserFacade instance;
 
@@ -43,4 +42,17 @@ public class UserFacade {
         return user;
     }
 
+    public User getUser(String username) throws AuthenticationException {
+        EntityManager em = emf.createEntityManager();
+        User user;
+        try {
+            user = em.find(User.class, username);
+            if (user == null) {
+                throw new AuthenticationException("Faulty token");
+            }
+        } finally {
+            em.close();
+        }
+        return user;
+    }
 }

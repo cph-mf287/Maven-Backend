@@ -1,65 +1,53 @@
 package security;
 
 import com.google.gson.Gson;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 import com.nimbusds.jose.JOSEException;
 import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
-import errorhandling.API_Exception;
+import entities.User;
+import errorhandling.GenericExceptionMapper;
+import facades.UserFacade;
 import security.errorhandling.AuthenticationException;
+import utils.EMF_Creator;
 
-import javax.ws.rs.Consumes;
-import javax.ws.rs.POST;
-import javax.ws.rs.Path;
-import javax.ws.rs.Produces;
-import javax.ws.rs.core.Context;
-import javax.ws.rs.core.MediaType;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
+import javax.persistence.EntityManagerFactory;
+import javax.ws.rs.*;
+import javax.ws.rs.core.*;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.Map;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 @Path("verify")
 public class TokenEndpoint {
+    private static final EntityManagerFactory EMF = EMF_Creator.createEntityManagerFactory();
+    private static final UserFacade USER_FACADE = UserFacade.getUserFacade(EMF);
+    private static final Gson GSON = new Gson();
 
-    @Context
-    SecurityContext securityContext;
-
-    @POST
+    @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response verifyToken(String jsonString) throws API_Exception, ParseException, JOSEException, AuthenticationException {
-        String token;
-
-        try{
-            JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
-            token = json.get("token").getAsString();
-        }catch (Exception e){
-            throw new API_Exception("Malformed JSON suplied",400,e);
-        }
-
-        SignedJWT signedJWT = SignedJWT.parse(token);
-        JWSVerifier verifier = new MACVerifier(SharedSecret.getSharedKey());
-
-        if(signedJWT.verify(verifier)){
-            if(new Date().getTime()>signedJWT.getJWTClaimsSet().getExpirationTime().getTime()){
-                throw new AuthenticationException("Your Token is no longer valid");
+    public Response verifyToken(@HeaderParam("x-access-token") String token) throws AuthenticationException {
+        System.out.println("Token: " + token);
+        try {
+            SignedJWT signedJWT = SignedJWT.parse(token);
+            JWSVerifier verifier = new MACVerifier(SharedSecret.getSharedKey());
+            if (signedJWT.verify(verifier)) {
+                if (new Date().getTime() > signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
+                    throw new AuthenticationException("Your token is no longer valid");
+                }
             }
+            System.out.println("Token is valid");
+            String username = signedJWT.getJWTClaimsSet().getSubject();
+            User user = USER_FACADE.getUser(username);
+            return Response.ok(GSON.toJson(new Token(username, user.getRolesAsStrings()).toString())).build();
+        } catch (ParseException |JOSEException | AuthenticationException ex) {
+            if (ex instanceof AuthenticationException) {
+                throw (AuthenticationException) ex;
+            }
+            Logger.getLogger(GenericExceptionMapper.class.getName()).log(Level.SEVERE, null, ex);
         }
-
-        JsonObject responsJson = new JsonObject();
-
-        for(Map.Entry<String, Object> entry : signedJWT.getJWTClaimsSet().getClaims().entrySet()) {
-            responsJson.add(entry.getKey(), (JsonElement) entry.getValue());
-            System.out.println(entry.getKey() + ":" + entry.getValue());
-        }
-
-
-        return Response.ok(new Gson().toJson(responsJson)).build();
+        throw new AuthenticationException("Something went wrong...");
     }
-
 }
