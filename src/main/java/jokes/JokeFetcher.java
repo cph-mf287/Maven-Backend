@@ -1,22 +1,26 @@
 package jokes;
 
 import com.google.gson.Gson;
+import dtos.JokeDTO;
 import utils.HttpUtils;
 
 import java.io.IOException;
-import java.lang.reflect.Type;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class JokeFetcher {
-    Gson gson = new Gson();
-    ExecutorService executableService = Executors.newFixedThreadPool(2);
+    private static final ExecutorService EXECUTOR_SERVICE = Executors.newFixedThreadPool(2);
+    private static final Gson GSON = new Gson();
 
-    public <T> Object getJoke(String url, T typeOfDTO) throws ExecutionException, InterruptedException {
-        return executableService.submit( () -> {
+    public JokeDTO getJoke(String type, String fromUrl, String jokeUrl, String iconUrl) throws ExecutionException, InterruptedException {
+        return EXECUTOR_SERVICE.submit( () -> {
             try {
-                return gson.fromJson(HttpUtils.fetchData(url), (Type) typeOfDTO);
+                JokeDTO jokeDTO = GSON.fromJson(HttpUtils.fetchData(fromUrl), JokeDTO.class);
+                jokeDTO.setType(type);
+                jokeDTO.setUrl(jokeUrl);
+                jokeDTO.setIcon(iconUrl);
+                return jokeDTO;
             } catch (IOException e) {
                 e.printStackTrace();
             }
