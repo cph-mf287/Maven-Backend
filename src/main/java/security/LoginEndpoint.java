@@ -35,23 +35,22 @@ public class LoginEndpoint {
             JsonObject json = JsonParser.parseString(jsonString).getAsJsonObject();
             username = json.get("username").getAsString();
             password = json.get("password").getAsString();
-
+            System.out.println(json);
         } catch (Exception e) {
            throw new API_Exception("Malformed JSON Supplied", 400, e);
         }
 
         try {
-            User user = USER_FACADE.getVeryfiedUser(username, password);
-            String token = new Token(username, user.getRolesAsStrings()).toString();
-            System.out.println("Token: " + token);
-            return Response.ok(GSON.toJson(token)).build();
-
-        } catch (JOSEException | AuthenticationException ex) {
-            if (ex instanceof AuthenticationException) {
-                throw (AuthenticationException) ex;
+            User user = USER_FACADE.getVerifiedUser(username, password);
+            Token token = new Token(username, user.getRolesAsStrings());
+            System.out.println("Assigned token: " + token.serialize());
+            return Response.ok(GSON.toJson(token.serialize())).build();
+        } catch (JOSEException | AuthenticationException e) {
+            if (e instanceof AuthenticationException) {
+                throw (AuthenticationException) e;
             }
-            Logger.getLogger(GenericExceptionMapper.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(GenericExceptionMapper.class.getName()).log(Level.SEVERE, null, e);
+            throw new API_Exception("Something went wrong...", 500, e);
         }
-        throw new AuthenticationException("Invalid username or password! Please try again");
     }
 }

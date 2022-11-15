@@ -6,6 +6,7 @@ import com.nimbusds.jose.JWSVerifier;
 import com.nimbusds.jose.crypto.MACVerifier;
 import com.nimbusds.jwt.SignedJWT;
 import entities.User;
+import errorhandling.API_Exception;
 import errorhandling.GenericExceptionMapper;
 import facades.UserFacade;
 import security.errorhandling.AuthenticationException;
@@ -28,26 +29,29 @@ public class TokenEndpoint {
     @GET
     @Consumes(MediaType.APPLICATION_JSON)
     @Produces(MediaType.APPLICATION_JSON)
-    public Response verifyToken(@HeaderParam("x-access-token") String token) throws AuthenticationException {
-        System.out.println("Token: " + token);
+    public Response verifyToken(@HeaderParam("x-access-token") String token) throws API_Exception, AuthenticationException {
+        System.out.println("Checking token: " + token);
         try {
             SignedJWT signedJWT = SignedJWT.parse(token);
             JWSVerifier verifier = new MACVerifier(SharedSecret.getSharedKey());
             if (signedJWT.verify(verifier)) {
                 if (new Date().getTime() > signedJWT.getJWTClaimsSet().getExpirationTime().getTime()) {
+                    System.out.println("Token is not valid");
                     throw new AuthenticationException("Your token is no longer valid");
                 }
             }
             System.out.println("Token is valid");
             String username = signedJWT.getJWTClaimsSet().getSubject();
             User user = USER_FACADE.getUser(username);
-            return Response.ok(GSON.toJson(new Token(username, user.getRolesAsStrings()).toString())).build();
-        } catch (ParseException |JOSEException | AuthenticationException ex) {
-            if (ex instanceof AuthenticationException) {
-                throw (AuthenticationException) ex;
+            Token newToken = new Token(username, user.getRolesAsStrings());
+            System.out.println("Renewed token: " + newToken.serialize());
+            return Response.ok(GSON.toJson(newToken.serialize())).build();
+        } catch (ParseException |JOSEException | AuthenticationException e) {
+            if (e instanceof AuthenticationException) {
+                throw (AuthenticationException) e;
             }
-            Logger.getLogger(GenericExceptionMapper.class.getName()).log(Level.SEVERE, null, ex);
+            Logger.getLogger(GenericExceptionMapper.class.getName()).log(Level.SEVERE, null, e);
+            throw new API_Exception("Something went wrong...", 500, e);
         }
-        throw new AuthenticationException("Something went wrong...");
     }
 }

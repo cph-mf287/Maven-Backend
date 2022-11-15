@@ -12,14 +12,14 @@ import java.util.Date;
 import java.util.List;
 
 public class Token {
-    public static final int TOKEN_EXPIRE_TIME = 1000 * 60 * 30; //30 min
-    private final String TOKEN;
+    public static final int TOKEN_EXPIRE_TIME = 1000 * 60 / 4; //30 min
+    private final SignedJWT TOKEN;
 
     public Token(String username, List<String> roles) throws JOSEException {
         TOKEN = createToken(username, roles);
     }
 
-    public static String createToken(String username, List<String> roles) throws JOSEException {
+    public static SignedJWT createToken(String username, List<String> roles) throws JOSEException {
         StringBuilder res = new StringBuilder();
         for (String string : roles) {
             res.append(string);
@@ -38,10 +38,14 @@ public class Token {
                 .build();
         SignedJWT signedJWT = new SignedJWT(new JWSHeader(JWSAlgorithm.HS256), claimsSet);
         signedJWT.sign(signer);
-        return signedJWT.serialize();
+        return signedJWT;
+    }
+
+    public String serialize() {
+        return TOKEN.serialize();
     }
 
     public String toString() {
-        return TOKEN;
+        return TOKEN.toString();
     }
 }

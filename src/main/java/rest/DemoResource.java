@@ -1,13 +1,9 @@
 package rest;
 
 import com.google.gson.Gson;
-import dtos.ChuckDTO;
-import dtos.DadJokeDTO;
 import entities.User;
 
-import java.util.ArrayList;
 import java.util.List;
-import java.util.concurrent.ExecutionException;
 import javax.annotation.security.RolesAllowed;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
@@ -17,7 +13,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 
-import jokes.JokeFetcher;
 import utils.EMF_Creator;
 
 /**
@@ -26,7 +21,7 @@ import utils.EMF_Creator;
 @Path("info")
 public class DemoResource {
     private static final EntityManagerFactory EMF = EMF_Creator.createEntityManagerFactory();
-    private final Gson gson = new Gson();
+    private final Gson GSON = new Gson();
 
     @Context
     private UriInfo context;
@@ -53,37 +48,5 @@ public class DemoResource {
         } finally {
             em.close();
         }
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("user")
-    @RolesAllowed("user")
-    public Response getFromUser() {
-        String thisuser = securityContext.getUserPrincipal().getName();
-        return Response.ok("{\"msg\": \"Hello to User: " + thisuser + "\"}").build();
-    }
-
-    @GET
-    @Produces(MediaType.APPLICATION_JSON)
-    @Path("admin")
-    @RolesAllowed("admin")
-    public Response getFromAdmin() {
-        String thisuser = securityContext.getUserPrincipal().getName();
-        String thisrole = "admin";
-        //if (securityContext.isUserInRole("admin")) thisrole = "admin";
-        //else if (securityContext.isUserInRole("user")) thisrole = "user";
-        return Response.ok("{\"username\": \"" + thisuser + "\",\"role\":\"" + thisrole + "\"}").build();
-    }
-
-    @GET
-    @Path("externalAPI/jokes")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getJokes() throws ExecutionException, InterruptedException {
-        List<Object> jokes = new ArrayList();
-        JokeFetcher jokeFetcher = new JokeFetcher();
-        jokes.add(jokeFetcher.getJoke("https://api.chucknorris.io/jokes/random", ChuckDTO.class));
-        jokes.add(jokeFetcher.getJoke("https://icanhazdadjoke.com", DadJokeDTO.class));
-        return Response.ok(gson.toJson(jokes)).build();
     }
 }
