@@ -5,7 +5,6 @@ import javax.ws.rs.core.Application;
 
 @javax.ws.rs.ApplicationPath("api")
 public class ApplicationConfig extends Application {
-
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new java.util.HashSet<>();
@@ -20,7 +19,6 @@ public class ApplicationConfig extends Application {
      * If required, comment out calling this method in getClasses().
      */
     private void addRestResourceClasses(Set<Class<?>> resources) {
-
         resources.add(cors.CorsFilter.class);
         resources.add(errorhandling.API_ExceptionMapper.class);
         resources.add(errorhandling.GenericExceptionMapper.class);
@@ -28,12 +26,13 @@ public class ApplicationConfig extends Application {
         resources.add(rest.DemoResource.class);
         resources.add(rest.RenameMeResource.class);
         resources.add(security.JWTAuthenticationFilter.class);
+        resources.add(security.UserEndpoint.class);
         resources.add(security.LoginEndpoint.class);
         resources.add(security.TokenEndpoint.class);
         resources.add(security.RolesAllowedFilter.class);
         resources.add(security.errorhandling.AuthenticationExceptionMapper.class);
         resources.add(security.errorhandling.NotAuthorizedExceptionMapper.class);
         resources.add(jokes.JokeFetcher.class);
+        resources.add(jokes.JokeEndpoint.class);
     }
-    
 }
